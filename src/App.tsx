@@ -22,29 +22,25 @@ import {
   checkCollision,
   generateObstacle,
 } from './lib/utils'
+import { ObstacleType, TObstacle } from './types/index.types'
 
 import IMG_BACKGROUND from '@/assets/be454f2d-02f9-4e51-a1b7-942189723a7e.jpg'
 import IMG_BUILDING from '@/assets/building-town-svgrepo-com.svg'
+import IMG_COMET from '@/assets/comet-svgrepo-com.svg'
+import IMG_LAZER from '@/assets/line-solid-svgrepo-com.svg'
 import IMG_MOUNTAIN from '@/assets/mountain-svgrepo-com.svg'
 import IMG_MODEL from '@/assets/penis-svgrepo-com.svg'
+import IMG_ROOSTER from '@/assets/rooster-svgrepo-com.svg'
 import { Button } from '@/components/ui/button'
 
-export type TObstacle = Array<{
-  x: number
-  y: number
-  width: number
-  height: number
-  type: 'mountain' | 'building'
-  fromTop: boolean
-}>
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const requestRef = useRef<number>()
-  const posY = useRef(0) // Позиция по оси Y модели
+  const positionModelY = useRef(0) // Позиция по оси Y модели
   const speedY = useRef(0) // Начальная скорость модели
   const gravity = 0.8 // Гравитация (ускорение)
-  const squareSize = 50 // Размер модели
-  const squareSpeed = 1 // Скорость движения фона
+  const modelSize = 50 // Размер модели
+  const modelSpeed = 1 // Скорость движения фона
   const backgroundX = useRef(0) // Начальная позиция фона
   const angleRef = useRef(0) // Текущий угол поворота
   const targetAngleRef = useRef(0) // Целевой угол поворота
@@ -55,13 +51,16 @@ export default function App() {
   const imgModel = useRef<HTMLImageElement>(new Image()) // Ссылка на изображение модели
   const imgMountain = useRef<HTMLImageElement>(new Image()) // Ссылка на изображение модели
   const imgBuilding = useRef<HTMLImageElement>(new Image()) // Ссылка на изображение модели
+  const imgComet = useRef<HTMLImageElement>(new Image()) // Ссылка на изображение модели
+  const imgLazer = useRef<HTMLImageElement>(new Image()) // Ссылка на изображение модели
+  const imgRooster = useRef<HTMLImageElement>(new Image()) // Ссылка на изображение модели
   const [isPlaying, setIsPlaying] = useState(true) // Состояние игры (играет/остановлена)
   const [imageModels] = useState<string[]>(IMAGES_MODEL)
   const [imageBackgrounds] = useState<string[]>(IMAGES_BACKGROUND)
   const [imageObstacles] = useState<string[]>(IMAGES_OBSTACLES)
 
   const handleGameOver = useCallback(() => {
-    posY.current = canvasRef.current!.height / 2
+    positionModelY.current = canvasRef.current!.height / 2
     speedY.current = 0 // Останавливаем падение
     setIsPlaying(false) // Останавливаем игру
     console.log('Ты проиграл лошара ебаная') // Показываем сообщение
@@ -73,19 +72,30 @@ export default function App() {
   const drawObstacles = useCallback(
     (ctx: CanvasRenderingContext2D) => {
       obstacles.current.forEach((obstacle) => {
-        if (!imgMountain.current || !imgBuilding.current) {
+        if (
+          !imgMountain.current ||
+          !imgBuilding.current ||
+          !imgComet.current ||
+          !imgLazer.current ||
+          !imgRooster.current
+        ) {
           console.error('Images not loaded')
           return
         }
 
         ctx.save()
-        const img =
-          obstacle.type === 'mountain'
-            ? imgMountain.current
-            : imgBuilding.current
+        let img: HTMLImageElement | null = null
+
+        if (obstacle.type === ObstacleType.Mountain) img = imgMountain.current
+        else if (obstacle.type === ObstacleType.Building)
+          img = imgBuilding.current
+        else if (obstacle.type === ObstacleType.Comet) img = imgComet.current
+        else if (obstacle.type === ObstacleType.Lazer) img = imgLazer.current
+        else if (obstacle.type === ObstacleType.Rooster)
+          img = imgRooster.current
 
         const path = new Path2D()
-        if (obstacle.type === 'mountain') {
+        if (obstacle.type === ObstacleType.Mountain) {
           if (obstacle.fromTop) {
             path.moveTo(obstacle.x, obstacle.y)
             path.lineTo(obstacle.x + obstacle.width, obstacle.y)
@@ -111,23 +121,33 @@ export default function App() {
         ctx.stroke(path)
         // Применяем обрезку (clipping) к форме препятствия
         ctx.clip(path)
-        ctx.translate(
-          obstacle.x + obstacle.width / 2,
-          obstacle.y + obstacle.height / 2
-        )
+        if (
+          obstacle.type === ObstacleType.Comet ||
+          obstacle.type === ObstacleType.Lazer ||
+          obstacle.type === ObstacleType.Rooster
+        ) {
+          ctx.translate(
+            obstacle.x + obstacle.width / 2,
+            obstacle.y + obstacle.height / 2
+          )
+          ctx.translate(-obstacle.width / 2, -obstacle.height / 2)
+          if (img) ctx.drawImage(img, 0, 0, obstacle.width, obstacle.height)
+          obstacle.x -= modelSpeed + 2
+        } else {
+          ctx.translate(
+            obstacle.x + obstacle.width / 2,
+            obstacle.y + obstacle.height / 2
+          )
+          if (obstacle.fromTop) ctx.rotate(Math.PI)
+          ctx.translate(-obstacle.width / 2, -obstacle.height / 2)
 
-        if (obstacle.fromTop) ctx.rotate(Math.PI) // Вращаем на 180 градусов, если необходимо
-
-        // Восстанавливаем позицию для отрисовки
-        ctx.translate(-obstacle.width / 2, -obstacle.height / 2)
-
-        // Рисуем изображение
-        ctx.drawImage(img, 0, 0, obstacle.width, obstacle.height)
+          if (img) ctx.drawImage(img, 0, 0, obstacle.width, obstacle.height)
+          obstacle.x -= modelSpeed
+        }
 
         ctx.restore()
 
-        obstacle.x -= squareSpeed
-        if (checkCollision(obstacle, canvasRef, squareSize, posY)) {
+        if (checkCollision(obstacle, canvasRef, modelSize, positionModelY)) {
           handleGameOver()
           return
         }
@@ -159,11 +179,11 @@ export default function App() {
         ctx.canvas.height
       )
       drawObstacles(ctx)
-      if (Math.random() < 0.01) {
+      if (Math.random() < 0.03)
         generateObstacle(isPlaying, canvasRef, obstacles)
-      }
+
       // Перемещаем фон влево
-      backgroundX.current -= squareSpeed
+      backgroundX.current -= modelSpeed
 
       // Если фон полностью вышел за левую границу, сбрасываем его позицию
       if (backgroundX.current <= -ctx.canvas.width) {
@@ -173,18 +193,18 @@ export default function App() {
       // Вычисляем центр экрана по Y
 
       // Логика падения квадрата
-      posY.current += speedY.current // Меняем позицию по Y
+      positionModelY.current += speedY.current // Меняем позицию по Y
       speedY.current += gravity // Увеличиваем скорость падения под действием гравитации
 
       // Проверка на проигрыш, если квадрат касается верхней или нижней границы
-      if (posY.current > ctx.canvas.height - squareSize) {
-        posY.current = ctx.canvas.height - squareSize
+      if (positionModelY.current > ctx.canvas.height - modelSize) {
+        positionModelY.current = ctx.canvas.height - modelSize
         speedY.current = 0 // Останавливаем падение
         setIsPlaying(false) // Останавливаем игру
         console.log('Ты проиграл , ты что еблан за границы не заходи') // Показываем сообщение
         if (obstacleInterval.current) clearInterval(obstacleInterval.current)
-      } else if (posY.current < 0) {
-        posY.current = 0
+      } else if (positionModelY.current < 0) {
+        positionModelY.current = 0
         speedY.current = 0 // Останавливаем движение вверх
         setIsPlaying(false) // Останавливаем игру
         console.log('Ты проиграл , ты что еблан за границы не заходи') // Показываем сообщении
@@ -208,17 +228,20 @@ export default function App() {
       ctx.save() // Сохраняем текущее состояние
 
       // Перемещаем начало координат в центр модели
-      ctx.translate(ctx.canvas.width / 2, posY.current + squareSize / 2)
+      ctx.translate(
+        ctx.canvas.width / 2,
+        positionModelY.current + modelSize / 2
+      )
 
       // Поворачиваем на текущий угол
       ctx.rotate(angleRef.current)
 
       ctx.drawImage(
         imgModel.current,
-        -squareSize / 2, // Сместить начало координат влево
-        -squareSize / 2, // Сместить начало координат вверх
-        squareSize,
-        squareSize
+        -modelSize / 2, // Сместить начало координат влево
+        -modelSize / 2, // Сместить начало координат вверх
+        modelSize,
+        modelSize
       )
       ctx.restore()
     },
@@ -228,7 +251,7 @@ export default function App() {
   const handleGame = () => {
     if (isPlaying) handleGameOver()
     else {
-      posY.current = canvasRef.current!.height / 2
+      positionModelY.current = canvasRef.current!.height / 2
       speedY.current = 0 // Останавливаем падение
       setIsPlaying(true) // Останавливаем игру
       console.log('еще раз') // Показываем сообщение
@@ -254,6 +277,9 @@ export default function App() {
     imgModel.current.src = IMG_MODEL
     imgBuilding.current.src = IMG_BUILDING
     imgMountain.current.src = IMG_MOUNTAIN
+    imgComet.current.src = IMG_COMET
+    imgLazer.current.src = IMG_LAZER
+    imgRooster.current.src = IMG_ROOSTER
   }, [])
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate)
