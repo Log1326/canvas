@@ -221,7 +221,7 @@ export const generateObstacle = (
       size = buildingSize
       break
     case ObstacleType.Lazer:
-      size = 50 + Math.random() * 50
+      size = 50
       break
     case ObstacleType.Comet:
       size = 40 + Math.random() * 60
@@ -231,8 +231,15 @@ export const generateObstacle = (
       break
   }
 
-  const y = fromTop ? 0 : canvasHeight - size
-
+  let y = fromTop ? 0 : canvasHeight - size
+  if (
+    type === ObstacleType.Lazer ||
+    type === ObstacleType.Comet ||
+    type === ObstacleType.Rooster
+  ) {
+    const verticalSpread = (Math.random() - 0.5) * 400 // От -100 до +100
+    y = (canvasHeight - size) / 2 + verticalSpread // Центрируем по вертикали с разбросом
+  }
   obstacles.current.push({
     x: canvasWidth,
     y: Math.round(y),

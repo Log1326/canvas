@@ -116,9 +116,9 @@ export default function App() {
         else path.rect(obstacle.x, obstacle.y, obstacle.width, obstacle.height)
 
         path.closePath()
-        ctx.strokeStyle = 'blue' // Сделайте ее синим для видимости
-        ctx.lineWidth = 1
-        ctx.stroke(path)
+        // ctx.strokeStyle = 'blue' // Сделайте ее синим для видимости
+        // ctx.lineWidth = 1
+        // ctx.stroke(path)
         // Применяем обрезку (clipping) к форме препятствия
         ctx.clip(path)
         if (
