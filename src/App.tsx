@@ -125,6 +125,15 @@ export default function App() {
       />
 
       <div className="flex justify-center z-50 items-center gap-3 absolute top-4 right-4">
+        <Button variant="secondary" asChild>
+          <a
+            href="https://github.com/Log1326/canvas"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub Repo
+          </a>
+        </Button>
         <Button variant="secondary" onClick={handleGame}>
           {isPlaying ? "Stop" : "Start"}
         </Button>
