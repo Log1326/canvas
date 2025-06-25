@@ -17,6 +17,7 @@ type CarouselProps = {
   plugins?: CarouselPlugin;
   orientation?: "horizontal" | "vertical";
   setApi?: (api: CarouselApi) => void;
+  activeIndex?: number;
   setActiveIndex?: (index: number) => void;
 };
 
@@ -52,6 +53,7 @@ const Carousel = React.forwardRef<
       setApi,
       plugins,
       className,
+      activeIndex,
       setActiveIndex,
       children,
       ...props
@@ -80,7 +82,11 @@ const Carousel = React.forwardRef<
       },
       [setActiveIndex],
     );
-
+    React.useEffect(() => {
+      if (api && typeof activeIndex === "number") {
+        api.scrollTo(activeIndex);
+      }
+    }, [api, activeIndex]);
     const scrollPrev = React.useCallback(() => {
       api?.scrollPrev();
     }, [api]);
